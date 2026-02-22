@@ -4,7 +4,7 @@ pub enum FrameError {
     InvalidEscape,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum EncodeError {
     BufferTooSmall,
 }

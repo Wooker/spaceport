@@ -1,6 +1,6 @@
 #[repr(u8)]
 #[non_exhaustive]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Message {
     Invoke = 1,
     Reply,

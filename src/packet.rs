@@ -9,8 +9,12 @@ use super::{
 };
 
 pub const HEADER_LEN: usize = 10;
+pub const MAX_PACKET_LENGTH: usize = 256;
+pub const MAX_PAYLOAD_LENGTH: usize = MAX_PACKET_LENGTH - HEADER_LEN - 2;
+// Everything escaped + SOF + EOF
+pub const MAX_BUFFER_LENGTH: usize = MAX_PACKET_LENGTH * 2 + 2;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Packet<'a> {
     pub version: u8,
     pub flags: Flags,
@@ -26,7 +30,7 @@ impl<'a> Packet<'a> {
     /// Encode packet into out buffer, returning number of bytes written
     pub fn encode(&self, out: &mut [u8]) -> Result<usize, EncodeError> {
         // Temporary buffer for raw header + payload + CRC before escaping
-        let mut raw_buf = [0u8; 512]; // adjust size as needed
+        let mut raw_buf = [0u8; MAX_PACKET_LENGTH];
         let mut idx = 0;
 
         // Header
@@ -53,7 +57,7 @@ impl<'a> Packet<'a> {
         idx += 2;
 
         // Escape everything
-        if out.len() < idx * 2 + 2 {
+        if out.len() < MAX_BUFFER_LENGTH {
             // worst case: every byte is escaped + SOF/EOF
             return Err(EncodeError::BufferTooSmall);
         }
@@ -72,13 +76,13 @@ impl<'a> Packet<'a> {
         Ok(out_idx)
     }
 
-    pub fn decode(buf: &[u8], payload_buf: &'a mut [u8]) -> Result<Packet<'a>, DecodeError> {
+    pub fn decode(buf: &[u8], packet_buf: &'a mut [u8]) -> Result<Packet<'a>, DecodeError> {
         // check SOF/EOF
         if buf.len() < 3 || buf[0] != SOF || *buf.last().unwrap() != EOF {
             return Err(DecodeError::InvalidFrame);
         }
 
-        let mut raw_buf = [0u8; 512];
+        let mut raw_buf = [0u8; MAX_PACKET_LENGTH];
         let unescaped_len = unescape(&buf[1..buf.len() - 1], &mut raw_buf)
             .map_err(|_| DecodeError::InvalidFrame)?;
 
@@ -94,10 +98,10 @@ impl<'a> Packet<'a> {
         }
 
         let payload_len = data_len - HEADER_LEN;
-        if payload_len > payload_buf.len() {
+        if payload_len > packet_buf.len() {
             return Err(DecodeError::InvalidFrame);
         }
-        payload_buf[..payload_len].copy_from_slice(&raw_buf[HEADER_LEN..data_len]);
+        packet_buf[..payload_len].copy_from_slice(&raw_buf[HEADER_LEN..data_len]);
 
         let packet = Packet {
             version: raw_buf[0],
@@ -107,7 +111,7 @@ impl<'a> Packet<'a> {
             dst: NodeId::from_be_bytes([raw_buf[6], raw_buf[7]]),
             ttl: raw_buf[8],
             msg_type: Message::from(raw_buf[9]),
-            payload: &payload_buf[..payload_len],
+            payload: &packet_buf[..payload_len],
         };
 
         Ok(packet)

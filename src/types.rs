@@ -31,7 +31,7 @@ impl MessageType {
 }
 
 bitflags! {
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Copy, Clone, Debug, PartialEq)]
     pub struct Flags: u8 {
         const ACK_REQUIRED = 1 << 0;
         const IS_ACK       = 1 << 1;

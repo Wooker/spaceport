@@ -129,4 +129,17 @@ impl<'a> Packet<'a> {
             payload,
         }
     }
+
+    pub fn ack(&self, payload: &'a [u8]) -> Packet<'a> {
+        Packet {
+            version: PROTOCOL_VERSION,
+            flags: Flags::IS_ACK,
+            packet_id: self.packet_id + 1,
+            src: self.dst,
+            dst: self.src,
+            ttl: self.ttl,
+            msg_type: Message::Reply,
+            payload,
+        }
+    }
 }

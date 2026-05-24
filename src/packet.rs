@@ -9,7 +9,7 @@ use super::{
 };
 
 pub const HEADER_LEN: usize = 10;
-pub const MAX_PACKET_LENGTH: usize = 256;
+pub const MAX_PACKET_LENGTH: usize = 128;
 pub const MAX_PAYLOAD_LENGTH: usize = MAX_PACKET_LENGTH - HEADER_LEN - 2;
 // Everything escaped + SOF + EOF
 pub const MAX_BUFFER_LENGTH: usize = MAX_PACKET_LENGTH * 2 + 2;
@@ -27,6 +27,25 @@ pub struct Packet<'a> {
 }
 
 impl<'a> Packet<'a> {
+    pub fn new(
+        flags: Flags,
+        packet_id: u16,
+        src: NodeId,
+        dst: NodeId,
+        msg_type: Message,
+        payload: &'a [u8],
+    ) -> Self {
+        Self {
+            version: PROTOCOL_VERSION,
+            flags,
+            packet_id,
+            src,
+            dst,
+            ttl: MAX_TTL,
+            msg_type,
+            payload,
+        }
+    }
     /// Encode packet into out buffer, returning number of bytes written
     pub fn encode(&self, out: &mut [u8]) -> Result<usize, EncodeError> {
         // Temporary buffer for raw header + payload + CRC before escaping
@@ -126,6 +145,32 @@ impl<'a> Packet<'a> {
             dst: self.src,
             ttl: self.ttl,
             msg_type: Message::Reply,
+            payload,
+        }
+    }
+
+    pub fn reply_with_flags(&self, flags: Flags, payload: &'a [u8]) -> Packet<'a> {
+        Packet {
+            version: PROTOCOL_VERSION,
+            flags,
+            packet_id: self.packet_id + 1,
+            src: self.dst,
+            dst: self.src,
+            ttl: self.ttl,
+            msg_type: Message::Reply,
+            payload,
+        }
+    }
+
+    pub fn reply_with_message(&self, msg_type: Message, payload: &'a [u8]) -> Packet<'a> {
+        Packet {
+            version: PROTOCOL_VERSION,
+            flags: Flags::empty(),
+            packet_id: self.packet_id + 1,
+            src: self.dst,
+            dst: self.src,
+            ttl: self.ttl,
+            msg_type,
             payload,
         }
     }

@@ -8,8 +8,33 @@ use super::{
     types::{Flags, NodeId, PacketId},
 };
 
+const fn parse_usize(val: Option<&str>) -> usize {
+    if let Some(s) = val {
+        let bytes = s.as_bytes();
+
+        let mut i = 0;
+        let mut result = 0;
+
+        while i < bytes.len() {
+            let b = bytes[i];
+
+            if b >= b'0' && b <= b'9' {
+                result = result * 10 + (b - b'0') as usize;
+            } else {
+                return 0; // or handle error differently
+            }
+
+            i += 1;
+        }
+
+        result
+    } else {
+        256
+    }
+}
+
 pub const HEADER_LEN: usize = 10;
-pub const MAX_PACKET_LENGTH: usize = 128;
+pub const MAX_PACKET_LENGTH: usize = parse_usize(option_env!("SPACEPORT_PACKET_LENGTH"));
 pub const MAX_PAYLOAD_LENGTH: usize = MAX_PACKET_LENGTH - HEADER_LEN - 2;
 // Everything escaped + SOF + EOF
 pub const MAX_BUFFER_LENGTH: usize = MAX_PACKET_LENGTH * 2 + 2;

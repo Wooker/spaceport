@@ -2,6 +2,8 @@
 name = "spaceport"
 version = "0.1.0"
 edition = "2024"
+description = "Communication protocol for orbit devices"
+license = "MIT"
 
 [dependencies]
 bitflags = { version = "2.4", default-features = false }

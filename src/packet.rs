@@ -51,6 +51,21 @@ pub struct Packet<'a> {
     pub payload: &'a [u8],
 }
 
+impl<'a> Default for Packet<'a> {
+    fn default() -> Self {
+        Self {
+            version: PROTOCOL_VERSION,
+            flags: Flags::empty(),
+            packet_id: 0,
+            src: 0,
+            dst: 0,
+            ttl: MAX_TTL,
+            msg_type: Message::Unknown,
+            payload: &[],
+        }
+    }
+}
+
 impl<'a> Packet<'a> {
     pub fn new(
         flags: Flags,
